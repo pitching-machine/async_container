@@ -28,7 +28,6 @@ namespace DataIO::Container
 		template<typename DataType,typename Ratio >
 		bool Recieve(const std::chrono::duration<DataType,Ratio>& timeout, LpDataObject& GetImage) noexcept;
 
-	//	bool Recieve(const std::chrono::milliseconds timeout, LpDataObject& GetImage) noexcept;
 	};
 
 	template<typename Data_t>
@@ -40,7 +39,7 @@ namespace DataIO::Container
 		this->m_Promise->set_value(LpDataObject{});
 	}
 	template<typename Data_t>
-	inline void AsyncContainer<Data_t>::InputUpdate(Data_t&& InputImage) noexcept
+	inline void AsyncContainer<Data_t>::UpdateInput(Data_t&& InputImage) noexcept
 	{
 		if (!this->m_UniqueFuture.valid())
 		{
@@ -54,13 +53,13 @@ namespace DataIO::Container
 	inline void AsyncContainer<Data_t>::Throw(Data_t&& InputImage) noexcept
 	{
 		try {
-			InputUpdate(std::forward<Data_t>(InputImage));
+			this->UpdateInput(std::forward<Data_t>(InputImage));
 		}
 		catch (const std::future_error & e)
 		{
 			if (e.code() != std::future_errc::promise_already_satisfied)
 			{
-				ASSERT(0);
+				assert(0);
 			}
 
 		}
@@ -102,13 +101,13 @@ namespace DataIO::Container
 	}*/
 	template<typename Data_t>
 	template<typename DataType, typename Ratio>
-	inline void AsyncContainer<Data_t>::OutputUpdate(const std::chrono::duration<DataType, Ratio>& Timeout) noexcept
+	inline void AsyncContainer<Data_t>::UpdateOutput(const std::chrono::duration<DataType, Ratio>& Timeout) noexcept
 	{
 
 		try {
 			if (this->m_UniqueFuture.valid())
 			{
-				auto Result = this->m_UniqueFuture.wait_for(timeout);
+				auto Result = this->m_UniqueFuture.wait_for(Timeout);
 				if (Result != std::future_status::timeout)
 				{
 					this->m_SharedFuture = this->m_UniqueFuture.share();
@@ -126,7 +125,7 @@ namespace DataIO::Container
 	template<typename DataType,typename Ratio >
 	[[nodiscard]] inline bool AsyncContainer<Data_t>::Recieve(const std::chrono::duration<DataType, Ratio>& timeout, LpDataObject& GetImage) noexcept
 	{
-		OutputUpdate(timeout);
+		this->UpdateOutput(timeout);
 
 		if (this->m_SharedFuture.get())
 		{
