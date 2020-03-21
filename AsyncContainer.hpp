@@ -18,11 +18,17 @@ namespace DataIO::Container
 		std::shared_future<LpDataObject> m_SharedFuture;
 
 		void InputUpdate(Data_t&& InputImage) noexcept;
-		void OutputUpdate(const std::chrono::milliseconds timeout)   noexcept;
+
+		template<typename DataType,typename Ratio>
+		void OutputUpdate(const std::chrono::duration<DataType,Ratio>& Timeout)   noexcept;
 	public:
 		AsyncContainer()noexcept;
 		void Throw(Data_t&& InputImage) noexcept;
-		bool Recieve(const std::chrono::milliseconds timeout, LpDataObject& GetImage) noexcept;
+
+		template<typename DataType,typename Ratio >
+		bool Recieve(const std::chrono::duration<DataType,Ratio>& timeout, LpDataObject& GetImage) noexcept;
+
+	//	bool Recieve(const std::chrono::milliseconds timeout, LpDataObject& GetImage) noexcept;
 	};
 
 	template<typename Data_t>
@@ -59,6 +65,7 @@ namespace DataIO::Container
 
 		}
 	}
+	/*
 	template<typename Data_t>
 	inline void AsyncContainer<Data_t>::OutputUpdate(const std::chrono::milliseconds timeout) noexcept
 	{
@@ -92,7 +99,46 @@ namespace DataIO::Container
 		}
 
 		return false;
+	}*/
+	template<typename Data_t>
+	template<typename DataType, typename Ratio>
+	inline void AsyncContainer<Data_t>::OutputUpdate(const std::chrono::duration<DataType, Ratio>& Timeout) noexcept
+	{
+
+		try {
+			if (this->m_UniqueFuture.valid())
+			{
+				auto Result = this->m_UniqueFuture.wait_for(timeout);
+				if (Result != std::future_status::timeout)
+				{
+					this->m_SharedFuture = this->m_UniqueFuture.share();
+				}
+			}
+		}
+		catch (const std::future_error& Err)
+		{
+			std_custum::string str;
+			CodePoint::ConvertStringAuto(std::string(Err.what()), str);
+			OutputDebugString(str.c_str());
+		}
 	}
+	template<typename Data_t>
+	template<typename DataType,typename Ratio >
+	[[nodiscard]] inline bool AsyncContainer<Data_t>::Recieve(const std::chrono::duration<DataType, Ratio>& timeout, LpDataObject& GetImage) noexcept
+	{
+		OutputUpdate(timeout);
+
+		if (this->m_SharedFuture.get())
+		{
+			GetData = (this->m_SharedFuture.get());
+			return true;
+		}
+
+		return false;
+
+	}
+
+
 
 }
 
