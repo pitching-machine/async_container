@@ -22,7 +22,7 @@ namespace DataIO::Container
 	public:
 		AsyncContainer()noexcept;
 		void Throw(Data_t&& InputImage) noexcept;
-		bool Recive(const std::chrono::milliseconds timeout, LpDataObject& GetImage) noexcept;
+		bool Recieve(const std::chrono::milliseconds timeout, LpDataObject& GetImage) noexcept;
 	};
 
 	template<typename Data_t, template<typename FutureType> typename Future_t>
@@ -81,7 +81,7 @@ namespace DataIO::Container
 	}
 	template<typename Data_t, template<typename FutureType> typename Future_t>
 	[[nodiscard]]
-	inline bool AsyncContainer<Data_t, Future_t>::Recive(const std::chrono::milliseconds timeout, LpDataObject& GetData) noexcept
+	inline bool AsyncContainer<Data_t, Future_t>::Recieve(const std::chrono::milliseconds timeout, LpDataObject& GetData) noexcept
 	{
 		OutputUpdate(timeout);
 		{
