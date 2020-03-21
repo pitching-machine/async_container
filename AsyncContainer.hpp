@@ -1,8 +1,13 @@
 #pragma once
 #include <future>
 #include <iostream>
+#if __has_include(<concepts>)
+#include <concepts>
+#endif
 namespace DataIO::Container
 {
+	
+
 	template<typename Data_t>
 	class AsyncContainer
 	{
@@ -123,9 +128,9 @@ namespace DataIO::Container
 	}
 	template<typename Data_t>
 	template<typename DataType,typename Ratio >
-	[[nodiscard]] inline bool AsyncContainer<Data_t>::Recieve(const std::chrono::duration<DataType, Ratio>& timeout, LpDataObject& GetImage) noexcept
+	[[nodiscard]] inline bool AsyncContainer<Data_t>::Recieve(const std::chrono::duration<DataType, Ratio>& Timeout, LpDataObject& GetImage) noexcept
 	{
-		this->UpdateOutput(timeout);
+		this->UpdateOutput(Timeout);
 
 		if (this->m_SharedFuture.get())
 		{
