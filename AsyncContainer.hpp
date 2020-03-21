@@ -1,9 +1,14 @@
 #pragma once
 #include <future>
 #include <iostream>
+#if __has_include(<concepts>)
+#include <concepts>
+#endif
 namespace DataIO::Container
 {
-	template<typename Data_t, template<typename FutureType> typename Future_t=std::future >
+	
+
+	template<typename Data_t>
 	class AsyncContainer
 	{
 		using LpDataObject = std::shared_ptr<Data_t>;
@@ -11,64 +16,70 @@ namespace DataIO::Container
 		LpDataObject MakePointer(const Data_t& Input=Data_t{}) { return std::make_shared<Data_t>(Input); }
 
 		// ”ñ“¯Šú‘—M
-		std::unique_ptr<std::promise<LpDataObject>> Promise;
+		std::unique_ptr<std::promise<LpDataObject>> m_Promise;
 		// ”ñ“¯ŠúóM
-		Future_t<LpDataObject> UniqueGetter;
+		std::future<LpDataObject> m_UniqueFuture;
 		// ”ñ“¯ŠúóMŒ‹‰Ê‚ğ•Û‘¶
-		std::shared_future<LpDataObject> SharedGetter;
+		std::shared_future<LpDataObject> m_SharedFuture;
 
-		void InputUpdate(Data_t&& InputImage) noexcept;
-		void OutputUpdate(const std::chrono::milliseconds timeout)   noexcept;
+		void UpdateInput(Data_t&& InputImage) noexcept;
+
+		template<typename DataType,typename Ratio>
+		void UpdateOutput(const std::chrono::duration<DataType,Ratio>& Timeout)   noexcept;
 	public:
 		AsyncContainer()noexcept;
 		void Throw(Data_t&& InputImage) noexcept;
-		bool Recive(const std::chrono::milliseconds timeout, LpDataObject& GetImage) noexcept;
+
+		template<typename DataType,typename Ratio >
+		bool Recieve(const std::chrono::duration<DataType,Ratio>& timeout, LpDataObject& GetImage) noexcept;
+
 	};
 
-	template<typename Data_t, template<typename FutureType> typename Future_t>
-	inline AsyncContainer<Data_t, Future_t>::AsyncContainer() noexcept
+	template<typename Data_t>
+	inline AsyncContainer<Data_t>::AsyncContainer() noexcept
 	{
 
-		this->Promise = std::make_unique<std::promise<LpDataObject>>();
-		this->UniqueGetter = this->Promise->get_future();
-		this->Promise->set_value(LpDataObject{});
+		this->m_Promise = std::make_unique<std::promise<LpDataObject>>();
+		this->m_UniqueFuture = this->m_Promise->get_future();
+		this->m_Promise->set_value(LpDataObject{});
 	}
-	template<typename Data_t, template<typename FutureType> typename Future_t>
-	inline void AsyncContainer<Data_t, Future_t>::InputUpdate(Data_t&& InputImage) noexcept
+	template<typename Data_t>
+	inline void AsyncContainer<Data_t>::UpdateInput(Data_t&& InputImage) noexcept
 	{
-		if (!this->UniqueGetter.valid())
+		if (!this->m_UniqueFuture.valid())
 		{
 			std::promise<LpDataObject> NewPromise;
-			this->Promise->swap(NewPromise);
-			this->UniqueGetter = this->Promise->get_future();
-			this->Promise->set_value(MakePointer(InputImage));
+			this->m_Promise->swap(NewPromise);
+			this->m_UniqueFuture = this->m_Promise->get_future();
+			this->m_Promise->set_value(MakePointer(InputImage));
 		}
 	}
-	template<typename Data_t, template<typename FutureType> typename Future_t>
-	inline void AsyncContainer<Data_t, Future_t>::Throw(Data_t&& InputImage) noexcept
+	template<typename Data_t>
+	inline void AsyncContainer<Data_t>::Throw(Data_t&& InputImage) noexcept
 	{
 		try {
-			InputUpdate(std::forward<Data_t>(InputImage));
+			this->UpdateInput(std::forward<Data_t>(InputImage));
 		}
 		catch (const std::future_error & e)
 		{
 			if (e.code() != std::future_errc::promise_already_satisfied)
 			{
-				ASSERT(0);
+				assert(0);
 			}
 
 		}
 	}
-	template<typename Data_t, template<typename FutureType> typename Future_t>
-	inline void AsyncContainer<Data_t, Future_t>::OutputUpdate(const std::chrono::milliseconds timeout) noexcept
+	/*
+	template<typename Data_t>
+	inline void AsyncContainer<Data_t>::OutputUpdate(const std::chrono::milliseconds timeout) noexcept
 	{
 		try {
-			if (this->UniqueGetter.valid())
+			if (this->m_UniqueFuture.valid())
 			{
-				auto Result = this->UniqueGetter.wait_for(timeout);
+				auto Result = this->m_UniqueFuture.wait_for(timeout);
 				if (Result != std::future_status::timeout)
 				{
-					this->SharedGetter = this->UniqueGetter.share();
+					this->m_SharedFuture = this->m_UniqueFuture.share();
 				}
 			}
 		}
@@ -79,20 +90,59 @@ namespace DataIO::Container
 			OutputDebugString(str.c_str());
 		}
 	}
-	template<typename Data_t, template<typename FutureType> typename Future_t>
+	template<typename Data_t>
 	[[nodiscard]]
-	inline bool AsyncContainer<Data_t, Future_t>::Recive(const std::chrono::milliseconds timeout, LpDataObject& GetData) noexcept
+	inline bool AsyncContainer<Data_t>::Recieve(const std::chrono::milliseconds timeout, LpDataObject& GetData) noexcept
 	{
 		OutputUpdate(timeout);
+
+		if (this->m_SharedFuture.get())
 		{
-			if (this->SharedGetter.get())
+			GetData = (this->m_SharedFuture.get());
+			return true;
+		}
+
+		return false;
+	}*/
+	template<typename Data_t>
+	template<typename DataType, typename Ratio>
+	inline void AsyncContainer<Data_t>::UpdateOutput(const std::chrono::duration<DataType, Ratio>& Timeout) noexcept
+	{
+
+		try {
+			if (this->m_UniqueFuture.valid())
 			{
-				GetData = (this->SharedGetter.get());
-				return true;
+				auto Result = this->m_UniqueFuture.wait_for(Timeout);
+				if (Result != std::future_status::timeout)
+				{
+					this->m_SharedFuture = this->m_UniqueFuture.share();
+				}
 			}
 		}
-		return false;
+		catch (const std::future_error& Err)
+		{
+			std_custum::string str;
+			CodePoint::ConvertStringAuto(std::string(Err.what()), str);
+			OutputDebugString(str.c_str());
+		}
 	}
+	template<typename Data_t>
+	template<typename DataType,typename Ratio >
+	[[nodiscard]] inline bool AsyncContainer<Data_t>::Recieve(const std::chrono::duration<DataType, Ratio>& Timeout, LpDataObject& GetImage) noexcept
+	{
+		this->UpdateOutput(Timeout);
+
+		if (this->m_SharedFuture.get())
+		{
+			GetData = (this->m_SharedFuture.get());
+			return true;
+		}
+
+		return false;
+
+	}
+
+
 
 }
 
