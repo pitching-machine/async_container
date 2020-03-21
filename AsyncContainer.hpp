@@ -11,11 +11,11 @@ namespace DataIO::Container
 		LpDataObject MakePointer(const Data_t& Input=Data_t{}) { return std::make_shared<Data_t>(Input); }
 
 		// ”ñ“¯Šú‘—M
-		std::unique_ptr<std::promise<LpDataObject>> Promise;
+		std::unique_ptr<std::promise<LpDataObject>> m_Promise;
 		// ”ñ“¯ŠúóM
 		std::future<LpDataObject> m_UniqueFuture;
 		// ”ñ“¯ŠúóMŒ‹‰Ê‚ğ•Û‘¶
-		std::shared_future<LpDataObject> SharedGetter;
+		std::shared_future<LpDataObject> m_SharedFuture;
 
 		void InputUpdate(Data_t&& InputImage) noexcept;
 		void OutputUpdate(const std::chrono::milliseconds timeout)   noexcept;
