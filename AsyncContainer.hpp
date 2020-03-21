@@ -17,10 +17,10 @@ namespace DataIO::Container
 		// ”ñ“¯ŠúóMŒ‹‰Ê‚ğ•Û‘¶
 		std::shared_future<LpDataObject> m_SharedFuture;
 
-		void InputUpdate(Data_t&& InputImage) noexcept;
+		void UpdateInput(Data_t&& InputImage) noexcept;
 
 		template<typename DataType,typename Ratio>
-		void OutputUpdate(const std::chrono::duration<DataType,Ratio>& Timeout)   noexcept;
+		void UpdateOutput(const std::chrono::duration<DataType,Ratio>& Timeout)   noexcept;
 	public:
 		AsyncContainer()noexcept;
 		void Throw(Data_t&& InputImage) noexcept;
